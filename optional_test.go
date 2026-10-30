@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/piotrpersona/opt"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_Optional(t *testing.T) {
@@ -14,74 +13,66 @@ func Test_Optional(t *testing.T) {
 	t.Run("Test some", func(t *testing.T) {
 		t.Parallel()
 
-		o := opt.Some("car")
-		val, err := o.Get()
-		require.NoError(t, err)
-		require.Equal(t, "car", val)
+		val, err := opt.Some("car").Get()
+		noError(t, err)
+		equal(t, val, "car")
 	})
 	t.Run("Test none", func(t *testing.T) {
 		t.Parallel()
 
-		o := opt.None[string]()
-		val, err := o.Get()
-		require.Equal(t, "", val)
-		require.ErrorIs(t, err, opt.ErrNone)
+		val, err := opt.None[string]().Get()
+		errorIs(t, err, opt.ErrNone)
+		equal(t, val, "")
 	})
 	t.Run("Test default", func(t *testing.T) {
 		t.Parallel()
 
-		o := opt.None[string]()
-		val := o.Default("boat")
-		require.Equal(t, "boat", val)
+		equal(t, opt.None[string]().Default("boat"), "boat")
 	})
 	t.Run("Test IsSome and IsNone", func(t *testing.T) {
 		t.Parallel()
 
-		require.True(t, opt.Some("car").IsSome())
-		require.False(t, opt.Some("car").IsNone())
-		require.True(t, opt.None[string]().IsNone())
-		require.False(t, opt.None[string]().IsSome())
+		isTrue(t, opt.Some("car").IsSome(), "Some should be IsSome")
+		isTrue(t, !opt.Some("car").IsNone(), "Some should not be IsNone")
+		isTrue(t, opt.None[string]().IsNone(), "None should be IsNone")
+		isTrue(t, !opt.None[string]().IsSome(), "None should not be IsSome")
 	})
 	t.Run("Test chaining on returned value", func(t *testing.T) {
 		t.Parallel()
 
 		val, err := opt.Some("car").Get()
-		require.NoError(t, err)
-		require.Equal(t, "car", val)
-		require.Equal(t, "boat", opt.None[string]().Default("boat"))
+		noError(t, err)
+		equal(t, val, "car")
+		equal(t, opt.None[string]().Default("boat"), "boat")
 	})
 	t.Run("Test From nil is None", func(t *testing.T) {
 		t.Parallel()
 
-		o := opt.From[string](nil)
-		require.True(t, o.IsNone())
+		isTrue(t, opt.From[string](nil).IsNone(), "From(nil) should be None")
 	})
 	t.Run("Test From value is Some", func(t *testing.T) {
 		t.Parallel()
 
 		s := "car"
-		o := opt.From(&s)
-		require.True(t, o.IsSome())
-		val, err := o.Get()
-		require.NoError(t, err)
-		require.Equal(t, "car", val)
+		val, err := opt.From(&s).Get()
+		noError(t, err)
+		equal(t, val, "car")
 	})
 	t.Run("Test Ptr round-trips and copies", func(t *testing.T) {
 		t.Parallel()
 
-		require.Nil(t, opt.None[string]().Ptr())
-
+		isTrue(t, opt.None[string]().Ptr() == nil, "None.Ptr() should be nil")
 		s := "car"
 		p := opt.From(&s).Ptr()
-		require.NotNil(t, p)
-		require.Equal(t, "car", *p)
-		require.NotSame(t, &s, p)
+		isTrue(t, p != nil, "Some.Ptr() should not be nil")
+		equal(t, *p, "car")
+		isTrue(t, p != &s, "Ptr() should return a copy, not the original pointer")
 	})
 	t.Run("Test String", func(t *testing.T) {
 		t.Parallel()
 
-		require.Equal(t, "Some(none)", opt.Some("none").String())
-		require.Equal(t, "None", opt.None[string]().String())
+		equal(t, opt.Some("none").String(), "Some(none)")
+		equal(t, opt.None[string]().String(), "None")
 	})
 	t.Run("Test JSON round-trip", func(t *testing.T) {
 		t.Parallel()
@@ -93,32 +84,32 @@ func Test_Optional(t *testing.T) {
 
 		in := payload{Name: opt.Some("car"), Age: opt.None[int]()}
 		data, err := json.Marshal(in)
-		require.NoError(t, err)
-		require.JSONEq(t, `{"name":"car"}`, string(data))
+		noError(t, err)
+		equal(t, string(data), `{"name":"car"}`)
 
 		var out payload
-		require.NoError(t, json.Unmarshal(data, &out))
-		require.Equal(t, in, out)
+		noError(t, json.Unmarshal(data, &out))
+		equal(t, out, in)
 	})
 	t.Run("Test JSON null decodes to None", func(t *testing.T) {
 		t.Parallel()
 
 		var o opt.Optional[string]
-		require.NoError(t, json.Unmarshal([]byte(`null`), &o))
-		require.True(t, o.IsNone())
+		noError(t, json.Unmarshal([]byte(`null`), &o))
+		isTrue(t, o.IsNone(), "null should decode to None")
 
 		data, err := json.Marshal(opt.None[string]())
-		require.NoError(t, err)
-		require.Equal(t, "null", string(data))
+		noError(t, err)
+		equal(t, string(data), "null")
 	})
 	t.Run("Test FromOk", func(t *testing.T) {
 		t.Parallel()
 
 		m := map[string]int{"car": 1}
 		v, ok := m["car"]
-		require.True(t, opt.FromOk(v, ok).IsSome())
+		isTrue(t, opt.FromOk(v, ok).IsSome(), "present key should be Some")
 		v, ok = m["boat"]
-		require.True(t, opt.FromOk(v, ok).IsNone())
+		isTrue(t, opt.FromOk(v, ok).IsNone(), "missing key should be None")
 	})
 	t.Run("Test DefaultFunc is lazy", func(t *testing.T) {
 		t.Parallel()
@@ -126,33 +117,32 @@ func Test_Optional(t *testing.T) {
 		calls := 0
 		fallback := func() string { calls++; return "boat" }
 
-		require.Equal(t, "car", opt.Some("car").DefaultFunc(fallback))
-		require.Equal(t, 0, calls)
-		require.Equal(t, "boat", opt.None[string]().DefaultFunc(fallback))
-		require.Equal(t, 1, calls)
+		equal(t, opt.Some("car").DefaultFunc(fallback), "car")
+		equal(t, calls, 0)
+		equal(t, opt.None[string]().DefaultFunc(fallback), "boat")
+		equal(t, calls, 1)
 	})
 	t.Run("Test SQL Value", func(t *testing.T) {
 		t.Parallel()
 
 		v, err := opt.Some("car").Value()
-		require.NoError(t, err)
-		require.Equal(t, "car", v)
+		noError(t, err)
+		isTrue(t, v == "car", "Some.Value() should be the value")
 
 		v, err = opt.None[string]().Value()
-		require.NoError(t, err)
-		require.Nil(t, v)
+		noError(t, err)
+		isTrue(t, v == nil, "None.Value() should be nil")
 	})
 	t.Run("Test SQL Scan", func(t *testing.T) {
 		t.Parallel()
 
 		var o opt.Optional[string]
-		require.NoError(t, o.Scan("car"))
-		require.True(t, o.IsSome())
+		noError(t, o.Scan("car"))
 		val, err := o.Get()
-		require.NoError(t, err)
-		require.Equal(t, "car", val)
+		noError(t, err)
+		equal(t, val, "car")
 
-		require.NoError(t, o.Scan(nil))
-		require.True(t, o.IsNone())
+		noError(t, o.Scan(nil))
+		isTrue(t, o.IsNone(), "scan nil should be None")
 	})
 }
