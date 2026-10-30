@@ -19,9 +19,9 @@ a := gopt.Some("value")
 n := gopt.None[string]()
 
 // check if value exists
-val, err := a.Get()
-if err != nil {
-    // it will return NoneErr
+val, ok := a.Get()
+if !ok {
+    // it is None
 }
 
 // or get default
@@ -32,5 +32,17 @@ opt := gopt.From(p)
 
 // back to a pointer: nil if None
 p := opt.Ptr()
+```
+
+## JSON
+
+`Optional[T]` marshals Some as the value and None as `null`. Tag a field
+`,omitzero` to drop it entirely when None.
+
+```go
+type User struct {
+    Name gopt.Optional[string] `json:"name"`
+    Age  gopt.Optional[int]    `json:"age,omitzero"`
+}
 ```
 

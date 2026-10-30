@@ -1,12 +1,9 @@
 package gopt
 
 import (
-	"errors"
+	"encoding/json"
 	"fmt"
 )
-
-// NoneErr will be returned if the optional value is none.
-var NoneErr = errors.New("the value is none")
 
 // Optional is type wrapper for any value
 type Optional[T any] struct {
@@ -44,12 +41,15 @@ func (o Optional[T]) IsNone() bool {
 	return !o.some
 }
 
-// Get returns value if Some, and error if None.
-func (o Optional[T]) Get() (T, error) {
-	if !o.some {
-		return o.value, NoneErr
-	}
-	return o.value, nil
+// IsZero reports whether the optional is empty, so a struct field tagged
+// json:",omitzero" is omitted when None.
+func (o Optional[T]) IsZero() bool {
+	return !o.some
+}
+
+// Get returns the value and true if Some, and the zero value and false if None.
+func (o Optional[T]) Get() (T, bool) {
+	return o.value, o.some
 }
 
 // Default returns provided value if None.
@@ -70,10 +70,32 @@ func (o Optional[T]) Ptr() *T {
 	return &v
 }
 
+// MarshalJSON encodes Some as the wrapped value and None as null.
+func (o Optional[T]) MarshalJSON() ([]byte, error) {
+	if !o.some {
+		return []byte("null"), nil
+	}
+	return json.Marshal(o.value)
+}
+
+// UnmarshalJSON decodes null as None and any other value as Some.
+func (o *Optional[T]) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		*o = None[T]()
+		return nil
+	}
+	var v T
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	*o = Some(v)
+	return nil
+}
+
 // String returns string representation of value.
 func (o Optional[T]) String() string {
 	if o.some {
-		return fmt.Sprintf("%v", o.value)
+		return fmt.Sprintf("Some(%v)", o.value)
 	}
-	return "none"
+	return "None"
 }

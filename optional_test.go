@@ -1,6 +1,7 @@
 package gopt_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/piotrpersona/gopt"
@@ -14,18 +15,17 @@ func Test_Optional(t *testing.T) {
 		t.Parallel()
 
 		opt := gopt.Some("car")
-		val, err := opt.Get()
-		require.NoError(t, err)
+		val, ok := opt.Get()
+		require.True(t, ok)
 		require.Equal(t, "car", val)
 	})
 	t.Run("Test none", func(t *testing.T) {
 		t.Parallel()
 
 		opt := gopt.None[string]()
-		val, err := opt.Get()
+		val, ok := opt.Get()
+		require.False(t, ok)
 		require.Equal(t, "", val)
-		require.Error(t, err)
-		require.ErrorIs(t, err, gopt.NoneErr)
 	})
 	t.Run("Test default", func(t *testing.T) {
 		t.Parallel()
@@ -45,8 +45,8 @@ func Test_Optional(t *testing.T) {
 	t.Run("Test chaining on returned value", func(t *testing.T) {
 		t.Parallel()
 
-		val, err := gopt.Some("car").Get()
-		require.NoError(t, err)
+		val, ok := gopt.Some("car").Get()
+		require.True(t, ok)
 		require.Equal(t, "car", val)
 		require.Equal(t, "boat", gopt.None[string]().Default("boat"))
 	})
@@ -55,8 +55,6 @@ func Test_Optional(t *testing.T) {
 
 		opt := gopt.From[string](nil)
 		require.True(t, opt.IsNone())
-		_, err := opt.Get()
-		require.ErrorIs(t, err, gopt.NoneErr)
 	})
 	t.Run("Test From value is Some", func(t *testing.T) {
 		t.Parallel()
@@ -64,8 +62,8 @@ func Test_Optional(t *testing.T) {
 		s := "car"
 		opt := gopt.From(&s)
 		require.True(t, opt.IsSome())
-		val, err := opt.Get()
-		require.NoError(t, err)
+		val, ok := opt.Get()
+		require.True(t, ok)
 		require.Equal(t, "car", val)
 	})
 	t.Run("Test Ptr round-trips and copies", func(t *testing.T) {
@@ -78,5 +76,39 @@ func Test_Optional(t *testing.T) {
 		require.NotNil(t, p)
 		require.Equal(t, "car", *p)
 		require.NotSame(t, &s, p)
+	})
+	t.Run("Test String", func(t *testing.T) {
+		t.Parallel()
+
+		require.Equal(t, "Some(none)", gopt.Some("none").String())
+		require.Equal(t, "None", gopt.None[string]().String())
+	})
+	t.Run("Test JSON round-trip", func(t *testing.T) {
+		t.Parallel()
+
+		type payload struct {
+			Name gopt.Optional[string] `json:"name"`
+			Age  gopt.Optional[int]    `json:"age,omitzero"`
+		}
+
+		in := payload{Name: gopt.Some("car"), Age: gopt.None[int]()}
+		data, err := json.Marshal(in)
+		require.NoError(t, err)
+		require.JSONEq(t, `{"name":"car"}`, string(data))
+
+		var out payload
+		require.NoError(t, json.Unmarshal(data, &out))
+		require.Equal(t, in, out)
+	})
+	t.Run("Test JSON null decodes to None", func(t *testing.T) {
+		t.Parallel()
+
+		var opt gopt.Optional[string]
+		require.NoError(t, json.Unmarshal([]byte(`null`), &opt))
+		require.True(t, opt.IsNone())
+
+		data, err := json.Marshal(gopt.None[string]())
+		require.NoError(t, err)
+		require.Equal(t, "null", string(data))
 	})
 }
