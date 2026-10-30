@@ -34,4 +34,20 @@ func Test_Optional(t *testing.T) {
 		val := opt.Default("boat")
 		require.Equal(t, "boat", val)
 	})
+	t.Run("Test IsSome and IsNone", func(t *testing.T) {
+		t.Parallel()
+
+		require.True(t, gopt.Some("car").IsSome())
+		require.False(t, gopt.Some("car").IsNone())
+		require.True(t, gopt.None[string]().IsNone())
+		require.False(t, gopt.None[string]().IsSome())
+	})
+	t.Run("Test chaining on returned value", func(t *testing.T) {
+		t.Parallel()
+
+		val, err := gopt.Some("car").Get()
+		require.NoError(t, err)
+		require.Equal(t, "car", val)
+		require.Equal(t, "boat", gopt.None[string]().Default("boat"))
+	})
 }

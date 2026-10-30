@@ -24,8 +24,18 @@ func None[T any]() Optional[T] {
 	return Optional[T]{some: false}
 }
 
+// IsSome reports whether the optional holds a value.
+func (o Optional[T]) IsSome() bool {
+	return o.some
+}
+
+// IsNone reports whether the optional is empty.
+func (o Optional[T]) IsNone() bool {
+	return !o.some
+}
+
 // Get returns value if Some, and error if None.
-func (o *Optional[T]) Get() (T, error) {
+func (o Optional[T]) Get() (T, error) {
 	if !o.some {
 		return o.value, NoneErr
 	}
@@ -33,7 +43,7 @@ func (o *Optional[T]) Get() (T, error) {
 }
 
 // Default returns provided value if None.
-func (o *Optional[T]) Default(d T) T {
+func (o Optional[T]) Default(d T) T {
 	if !o.some {
 		return d
 	}
