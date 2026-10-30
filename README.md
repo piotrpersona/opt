@@ -1,37 +1,37 @@
-# gopt
+# opt
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/piotrpersona/gopt.svg)](https://pkg.go.dev/github.com/piotrpersona/gopt)
+[![Go Reference](https://pkg.go.dev/badge/github.com/piotrpersona/opt.svg)](https://pkg.go.dev/github.com/piotrpersona/opt)
 
 Simple golang optional package.
 
 ## Install
 
 ```sh
-go get github.com/piotrpersona/gopt
+go get github.com/piotrpersona/opt
 ```
 
 ## Usage
 
 ```go
 // Create optional variable
-a := gopt.Some("value")
+a := opt.Some("value")
 // create none
-n := gopt.None[string]()
+n := opt.None[string]()
 
 // check if value exists
-val, ok := a.Get()
-if !ok {
-    // it is None
+val, err := a.Get()
+if err != nil {
+    // it is None (err is opt.ErrNone)
 }
 
 // or get default
 val := a.Default("default")
 
 // wrap an optional pointer: None if nil, Some(*p) otherwise
-opt := gopt.From(p)
+o := opt.From(p)
 
 // back to a pointer: nil if None
-p := opt.Ptr()
+p := o.Ptr()
 ```
 
 ## JSON
@@ -41,8 +41,7 @@ p := opt.Ptr()
 
 ```go
 type User struct {
-    Name gopt.Optional[string] `json:"name"`
-    Age  gopt.Optional[int]    `json:"age,omitzero"`
+    Name opt.Optional[string] `json:"name"`
+    Age  opt.Optional[int]    `json:"age,omitzero"`
 }
 ```
-

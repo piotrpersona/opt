@@ -1,9 +1,13 @@
-package gopt
+package opt
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
+
+// ErrNone is returned by Get when the optional is None.
+var ErrNone = errors.New("the value is none")
 
 // Optional is type wrapper for any value
 type Optional[T any] struct {
@@ -47,9 +51,12 @@ func (o Optional[T]) IsZero() bool {
 	return !o.some
 }
 
-// Get returns the value and true if Some, and the zero value and false if None.
-func (o Optional[T]) Get() (T, bool) {
-	return o.value, o.some
+// Get returns the value if Some, and ErrNone if None.
+func (o Optional[T]) Get() (T, error) {
+	if !o.some {
+		return o.value, ErrNone
+	}
+	return o.value, nil
 }
 
 // Default returns provided value if None.
