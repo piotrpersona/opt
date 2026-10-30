@@ -24,10 +24,10 @@ func None[T any]() Optional[T] {
 	return Optional[T]{some: false}
 }
 
-// FromPtr wraps a pointer into an Optional: None if p is nil, otherwise
+// From wraps a pointer into an Optional: None if p is nil, otherwise
 // Some(*p). Use it to lift a genuinely optional pointer. It copies the
 // pointee, so prefer a plain pointer for references to large objects.
-func FromPtr[T any](p *T) Optional[T] {
+func From[T any](p *T) Optional[T] {
 	if p == nil {
 		return None[T]()
 	}
@@ -61,7 +61,7 @@ func (o Optional[T]) Default(d T) T {
 }
 
 // Ptr returns a pointer to a copy of the value if Some, and nil if None.
-// It is the inverse of FromPtr.
+// It is the inverse of From.
 func (o Optional[T]) Ptr() *T {
 	if !o.some {
 		return nil
