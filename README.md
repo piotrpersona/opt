@@ -26,5 +26,11 @@ if err != nil {
 
 // or get default
 val := a.Default("default")
+
+// wrap an optional pointer: None if nil, Some(*p) otherwise
+opt := gopt.FromPtr(p)
+
+// back to a pointer: nil if None
+p := opt.Ptr()
 ```
 

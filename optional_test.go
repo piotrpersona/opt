@@ -50,4 +50,33 @@ func Test_Optional(t *testing.T) {
 		require.Equal(t, "car", val)
 		require.Equal(t, "boat", gopt.None[string]().Default("boat"))
 	})
+	t.Run("Test FromPtr nil is None", func(t *testing.T) {
+		t.Parallel()
+
+		opt := gopt.FromPtr[string](nil)
+		require.True(t, opt.IsNone())
+		_, err := opt.Get()
+		require.ErrorIs(t, err, gopt.NoneErr)
+	})
+	t.Run("Test FromPtr value is Some", func(t *testing.T) {
+		t.Parallel()
+
+		s := "car"
+		opt := gopt.FromPtr(&s)
+		require.True(t, opt.IsSome())
+		val, err := opt.Get()
+		require.NoError(t, err)
+		require.Equal(t, "car", val)
+	})
+	t.Run("Test Ptr round-trips and copies", func(t *testing.T) {
+		t.Parallel()
+
+		require.Nil(t, gopt.None[string]().Ptr())
+
+		s := "car"
+		p := gopt.FromPtr(&s).Ptr()
+		require.NotNil(t, p)
+		require.Equal(t, "car", *p)
+		require.NotSame(t, &s, p)
+	})
 }
