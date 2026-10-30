@@ -1,6 +1,8 @@
 package opt
 
 import (
+	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -35,6 +37,15 @@ func From[T any](p *T) Optional[T] {
 	return Some(*p)
 }
 
+// FromOk wraps a comma-ok result: Some(v) if ok, otherwise None. Handy to
+// lift a map lookup, type assertion or channel receive into an Optional.
+func FromOk[T any](v T, ok bool) Optional[T] {
+	if !ok {
+		return None[T]()
+	}
+	return Some(v)
+}
+
 // IsSome reports whether the optional holds a value.
 func (o Optional[T]) IsSome() bool {
 	return o.some
@@ -63,6 +74,15 @@ func (o Optional[T]) Get() (T, error) {
 func (o Optional[T]) Default(d T) T {
 	if !o.some {
 		return d
+	}
+	return o.value
+}
+
+// DefaultFunc returns the value if Some, otherwise the result of f. Unlike
+// Default it does not evaluate the fallback unless the optional is None.
+func (o Optional[T]) DefaultFunc(f func() T) T {
+	if !o.some {
+		return f()
 	}
 	return o.value
 }
@@ -96,6 +116,28 @@ func (o *Optional[T]) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*o = Some(v)
+	return nil
+}
+
+// Value implements driver.Valuer: None becomes SQL NULL, Some the value.
+func (o Optional[T]) Value() (driver.Value, error) {
+	if !o.some {
+		return nil, nil
+	}
+	return sql.Null[T]{V: o.value, Valid: true}.Value()
+}
+
+// Scan implements sql.Scanner: SQL NULL becomes None, anything else Some.
+func (o *Optional[T]) Scan(src any) error {
+	var n sql.Null[T]
+	if err := n.Scan(src); err != nil {
+		return err
+	}
+	if n.Valid {
+		*o = Some(n.V)
+	} else {
+		*o = None[T]()
+	}
 	return nil
 }
 

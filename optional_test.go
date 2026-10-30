@@ -111,4 +111,48 @@ func Test_Optional(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "null", string(data))
 	})
+	t.Run("Test FromOk", func(t *testing.T) {
+		t.Parallel()
+
+		m := map[string]int{"car": 1}
+		v, ok := m["car"]
+		require.True(t, opt.FromOk(v, ok).IsSome())
+		v, ok = m["boat"]
+		require.True(t, opt.FromOk(v, ok).IsNone())
+	})
+	t.Run("Test DefaultFunc is lazy", func(t *testing.T) {
+		t.Parallel()
+
+		calls := 0
+		fallback := func() string { calls++; return "boat" }
+
+		require.Equal(t, "car", opt.Some("car").DefaultFunc(fallback))
+		require.Equal(t, 0, calls)
+		require.Equal(t, "boat", opt.None[string]().DefaultFunc(fallback))
+		require.Equal(t, 1, calls)
+	})
+	t.Run("Test SQL Value", func(t *testing.T) {
+		t.Parallel()
+
+		v, err := opt.Some("car").Value()
+		require.NoError(t, err)
+		require.Equal(t, "car", v)
+
+		v, err = opt.None[string]().Value()
+		require.NoError(t, err)
+		require.Nil(t, v)
+	})
+	t.Run("Test SQL Scan", func(t *testing.T) {
+		t.Parallel()
+
+		var o opt.Optional[string]
+		require.NoError(t, o.Scan("car"))
+		require.True(t, o.IsSome())
+		val, err := o.Get()
+		require.NoError(t, err)
+		require.Equal(t, "car", val)
+
+		require.NoError(t, o.Scan(nil))
+		require.True(t, o.IsNone())
+	})
 }
